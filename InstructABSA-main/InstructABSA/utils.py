@@ -77,7 +77,7 @@ class T5Generator:
                 predicted_output.append(output_text)
         return predicted_output
     
-    def get_metrics(self, y_true, y_pred, is_triplet_extraction=False):
+    def get_metrics(self, y_true, y_pred, is_triplet_extraction=False, is_quadruple_extraction=False):
         total_pred = 0
         total_gt = 0
         tp = 0
@@ -92,6 +92,49 @@ class T5Generator:
                         if pred_val in gt_val or gt_val in pred_val:
                             tp+=1
                             break
+        elif is_quadruple_extraction:
+            for gt, pred in zip(y_true, y_pred):
+                gt_list = gt.split(', ')
+                pred_list = pred.split(', ')
+                total_pred+=len(pred_list)
+                total_gt+=len(gt_list)
+                for gt_val in gt_list:
+                    gt_target = gt_val.split(':')[0]
+
+                    try:
+                        gt_aspect = gt_val.split(':')[1]
+                    except:
+                        continue
+
+                    try:
+                        gt_opinion = gt_val.split(':')[2]
+                    except:
+                        continue
+                    try:
+                        gt_sentiment = gt_val.split(':')[3]
+                    except:
+                        continue
+
+                    for pred_val in pred_list:
+                        pr_target = pred_val.split(':')[0]
+
+                        try:
+                            pr_aspect = pred_val.split(':')[1]
+                        except:
+                            continue
+
+                        try:
+                            pr_opinion = gt_val.split(':')[2]
+                        except:
+                            continue
+
+                        try:
+                            pr_sentiment = gt_val.split(':')[3]
+                        except:
+                            continue
+
+                        if (pr_target == gt_target) and (pr_aspect == gt_aspect) and (pr_opinion == gt_opinion) and (pr_sentiment == gt_sentiment):
+                            tp+=1
 
         else:
             for gt, pred in zip(y_true, y_pred):

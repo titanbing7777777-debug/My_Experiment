@@ -95,6 +95,6 @@ def process_data(dataset_path, outdir_path,mode,language):
 
 
 if __name__ == "__main__":
-    m = "train"
+    m = "valid"
     l = "en"
-    process_data(dataset_root / f"jsons_{l}/{m}.json", BASE / f"data(five_shot)/{l}", m, l)
+    process_data(dataset_root / f"jsons_{l}/{m}.json", BASE / f"data(zero_shot)/{l}", m, l)

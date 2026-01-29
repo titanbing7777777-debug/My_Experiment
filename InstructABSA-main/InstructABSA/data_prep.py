@@ -149,6 +149,16 @@ class DatasetLoader:
         df['text'] = df[text_col].apply(lambda x: bos_instruction + x + eos_instruction)
         return df
     
+    def create_data_in_asqp_format(self, df, text_col, answer_col, bos_instruction = '', eos_instruction = ''):
+        """
+        Prepare the data in the input format required.
+        """
+        if df is None:
+            return
+        df['text'] = df[text_col].apply(lambda x: bos_instruction + x + eos_instruction)
+        df = df.rename(columns = {answer_col: 'labels'})
+        return df
+    
     def set_data_for_training_semeval(self, tokenize_function):
         """
         Create the training and test dataset as huggingface datasets format.

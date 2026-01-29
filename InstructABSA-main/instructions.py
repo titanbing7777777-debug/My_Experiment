@@ -6,6 +6,7 @@ class InstructionsHandler:
         self.aooe = {}
         self.aope = {}
         self.aoste = {}
+        self.diaasq = {}
 
     def load_instruction_set1(self, ):
 
@@ -155,6 +156,18 @@ class InstructionsHandler:
         self.aoste['delim_instruct'] = ''
         self.aoste['eos_instruct'] = ' \noutput:'
 
+        ################################# ASQP #################################
+        
+        self.asqp['bos_instruct'] = """Definition: The output will be the quadruples consisting of (target, aspect, opinion, sentiment) in the input text and the sentiment polarity (pos, neg, other) of the opinion term. In cases where there are no quadruple the output should be notarget:none:none:none.
+        Positive example 1-
+        input: This phone is not very good , but compared to the iPhone , I think it is better than the iPhone except for the processor [ laughs cry ]
+        output: iPhone:processor:better:pos
+        Positive example 2-
+        input: 778 Xiaomi Civi looks invincible and feels invincible [ doge ]
+        output: Xiaomi Civi:looks:invincible:pos, Xiaomi Civi:feels:invincible:pos
+        input: """
+        self.asqp['delim_instruct'] = ''
+        self.asqp['eos_instruct'] = ' \noutput:'
 
     def load_instruction_set2(self, ):
 
