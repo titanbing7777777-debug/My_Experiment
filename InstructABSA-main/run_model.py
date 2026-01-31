@@ -85,38 +85,40 @@ training_args = {
 
 # Create T5 model object
 print(config.set_instruction_key)
-if config.set_instruction_key == 1:
-    indomain = 'bos_instruct1'
-    outdomain = 'bos_instruct2'
-else:
-    indomain = 'bos_instruct2'
-    outdomain = 'bos_instruct1'
 
-if config.task == 'ate':
-    t5_exp = T5Generator(model_checkpoint)
-    bos_instruction_id = instruct_handler.ate[indomain]
-    if ood_tr_data_path is not None or ood_te_data_path is not None:
-        bos_instruction_ood = instruct_handler.ate[outdomain]
-    eos_instruction = instruct_handler.ate['eos_instruct']
-if config.task == 'atsc':
-    t5_exp = T5Classifier(model_checkpoint)
-    bos_instruction_id = instruct_handler.atsc[indomain]
-    if ood_tr_data_path is not None or ood_te_data_path is not None:
-        bos_instruction_ood = instruct_handler.atsc[outdomain]
-    delim_instruction = instruct_handler.atsc['delim_instruct']
-    eos_instruction = instruct_handler.atsc['eos_instruct']
-if config.task == 'joint':
-    t5_exp = T5Generator(model_checkpoint)
-    bos_instruction_id = instruct_handler.joint[indomain]
-    if ood_tr_data_path is not None or ood_te_data_path is not None:
-        bos_instruction_ood = instruct_handler.joint[outdomain]
-    eos_instruction = instruct_handler.joint['eos_instruct']
-if config.task == "asqp":
-    t5_exp = T5Generator(model_checkpoint)
-    bos_instruction_id = instruct_handler.asqp[indomain]
-    if ood_tr_data_path is not None or ood_te_data_path is not None:
-        bos_instruction_ood = instruct_handler.asqp[outdomain]
-    eos_instruction = instruct_handler.asqp['eos_instruct']
+if config.task in ['ate', 'atsc', 'joint'] :
+    if config.set_instruction_key == 1:
+        indomain = 'bos_instruct1'
+        outdomain = 'bos_instruct2'
+    else:
+        indomain = 'bos_instruct2'
+        outdomain = 'bos_instruct1'
+
+    if config.task == 'ate':
+        t5_exp = T5Generator(model_checkpoint)
+        bos_instruction_id = instruct_handler.ate[indomain]
+        if ood_tr_data_path is not None or ood_te_data_path is not None:
+            bos_instruction_ood = instruct_handler.ate[outdomain]
+        eos_instruction = instruct_handler.ate['eos_instruct']
+    if config.task == 'atsc':
+        t5_exp = T5Classifier(model_checkpoint)
+        bos_instruction_id = instruct_handler.atsc[indomain]
+        if ood_tr_data_path is not None or ood_te_data_path is not None:
+            bos_instruction_ood = instruct_handler.atsc[outdomain]
+        delim_instruction = instruct_handler.atsc['delim_instruct']
+        eos_instruction = instruct_handler.atsc['eos_instruct']
+    if config.task == 'joint':
+        t5_exp = T5Generator(model_checkpoint)
+        bos_instruction_id = instruct_handler.joint[indomain]
+        if ood_tr_data_path is not None or ood_te_data_path is not None:
+            bos_instruction_ood = instruct_handler.joint[outdomain]
+        eos_instruction = instruct_handler.joint['eos_instruct']
+        
+else:
+    if config.task == "asqp":
+        t5_exp = T5Generator(model_checkpoint)
+        bos_instruction_id = instruct_handler.asqp["bos_instruct"]
+        eos_instruction = instruct_handler.asqp['eos_instruct']
 
 if config.mode != 'cli':
     # Define function to load datasets and tokenize datasets
@@ -156,10 +158,8 @@ if config.mode != 'cli':
             loader.train_df_id = loader.create_data_in_asqp_format(loader.train_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
         if loader.test_df_id is not None:
             loader.test_df_id = loader.create_data_in_asqp_format(loader.test_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
-        if loader.train_df_ood is not None:
-            loader.train_df_ood = loader.create_data_in_asqp_format(loader.train_df_ood, 'input', 'target', bos_instruction_ood, eos_instruction)
-        if loader.test_df_ood is not None:
-            loader.test_df_ood = loader.create_data_in_asqp_format(loader.test_df_ood, 'input', 'target', bos_instruction_ood, eos_instruction)
+        if loader.valid_df_id is not None:
+            loader.valid_df_id = loader.create_data_in_asqp_format(loader.valid_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
 
     # Tokenize dataset
     id_ds, id_tokenized_ds, ood_ds, ood_tokenized_ds = loader.set_data_for_training_semeval(t5_exp.tokenize_function_inputs) 

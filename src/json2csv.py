@@ -40,7 +40,7 @@ def json2csv(json_filepath, csv_filepath):
 if __name__ == "__main__":
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    mode = "train"
+    mode = "valid"
 
     json_path = os.path.join(current_dir, "..", "data(zero_shot)", "en", f"{mode}.json")
 
