@@ -81,21 +81,44 @@ class T5Generator:
         total_pred = 0
         total_gt = 0
         tp = 0
-        if not is_triplet_extraction:
+        if is_triplet_extraction:
             for gt, pred in zip(y_true, y_pred):
                 gt_list = gt.split(', ')
                 pred_list = pred.split(', ')
                 total_pred+=len(pred_list)
                 total_gt+=len(gt_list)
                 for gt_val in gt_list:
+                    gt_asp = gt_val.split(':')[0]
+
+                    try:
+                        gt_op = gt_val.split(':')[1]
+                    except:
+                        continue
+
+                    try:
+                        gt_sent = gt_val.split(':')[2]
+                    except:
+                        continue
+
                     for pred_val in pred_list:
-                        if pred_val in gt_val or gt_val in pred_val:
+                        pr_asp = pred_val.split(':')[0]
+
+                        try:
+                            pr_op = pred_val.split(':')[1]
+                        except:
+                            continue
+
+                        try:
+                            pr_sent = pred_val.split(':')[2]
+                        except:
+                            continue
+
+                        if pr_asp in gt_asp and pr_op in gt_op and gt_sent == pr_sent:
                             tp+=1
-                            break
         elif is_quadruple_extraction:
             for gt, pred in zip(y_true, y_pred):
-                gt_list = gt.split(', ')
-                pred_list = pred.split(', ')
+                gt_list = [val for val in gt.split(', ') if val != 'notarget:none:none:none']
+                pred_list = [val for val in pred.split(', ') if val != 'notarget:none:none:none']
                 total_pred+=len(pred_list)
                 total_gt+=len(gt_list)
                 for gt_val in gt_list:
@@ -124,12 +147,12 @@ class T5Generator:
                             continue
 
                         try:
-                            pr_opinion = gt_val.split(':')[2]
+                            pr_opinion = pred_val.split(':')[2]
                         except:
                             continue
 
                         try:
-                            pr_sentiment = gt_val.split(':')[3]
+                            pr_sentiment = pred_val.split(':')[3]
                         except:
                             continue
 
@@ -143,37 +166,15 @@ class T5Generator:
                 total_pred+=len(pred_list)
                 total_gt+=len(gt_list)
                 for gt_val in gt_list:
-                    gt_asp = gt_val.split(':')[0]
-
-                    try:
-                        gt_op = gt_val.split(':')[1]
-                    except:
-                        continue
-
-                    try:
-                        gt_sent = gt_val.split(':')[2]
-                    except:
-                        continue
-
                     for pred_val in pred_list:
-                        pr_asp = pred_val.split(':')[0]
-
-                        try:
-                            pr_op = pred_val.split(':')[1]
-                        except:
-                            continue
-
-                        try:
-                            pr_sent = gt_val.split(':')[2]
-                        except:
-                            continue
-
-                        if pr_asp in gt_asp and pr_op in gt_op and gt_sent == pr_sent:
+                        if pred_val in gt_val or gt_val in pred_val:
                             tp+=1
-
-        p = tp/total_pred
-        r = tp/total_gt
-        return p, r, 2*p*r/(p+r), None
+                            break
+        p = tp/total_pred if total_pred > 0 else 0
+        r = tp/total_gt if total_gt > 0 else 0
+        print(f'TP: {tp}, Predicted: {total_pred}, Ground Truth: {total_gt}')
+        f1 = 2 * p * r / (p + r) if (p + r) > 0 else 0
+        return p, r, f1, None
 
 
 class T5Classifier:

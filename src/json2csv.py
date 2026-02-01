@@ -7,6 +7,7 @@ def json2csv(json_filepath, csv_filepath):
 
     # Load JSON data
     data = []
+    count = 0
     with open(json_filepath, 'r', encoding='utf-8') as json_file:
         for line in json_file:
             if line.strip():
@@ -17,6 +18,7 @@ def json2csv(json_filepath, csv_filepath):
                 else:
                     target_data = json.loads(json_line["target"])
                     quadruples = target_data.get("quadruples", [])
+                    count += len(quadruples)
                     # 注意：根据 JSON 内容，字段名是 target, aspect, opinion, sentiment
                     # 并没有 category，如果不确定可以用 get
                     json_line["target"] = ", ".join([
@@ -24,7 +26,9 @@ def json2csv(json_filepath, csv_filepath):
                         for item in quadruples
                     ])
                 data.append(json_line)
-    
+
+    print(f"Total target count: {count}")
+
     if data:
         print(data[0])
 
@@ -40,7 +44,7 @@ def json2csv(json_filepath, csv_filepath):
 if __name__ == "__main__":
 
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    mode = "valid"
+    mode = "test"
 
     json_path = os.path.join(current_dir, "..", "data(zero_shot)", "en", f"{mode}.json")
 

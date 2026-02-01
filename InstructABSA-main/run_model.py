@@ -36,7 +36,7 @@ if config.experiment_name is not None and config.mode == 'train':
     print('Experiment Name: ', config.experiment_name)
     model_checkpoint = config.model_checkpoint
     model_out_path = config.output_dir
-    model_out_path = os.path.join(model_out_path, config.task, f"{model_checkpoint.replace('/', '')}-{config.experiment_name}")
+    model_out_path = os.path.join(model_out_path, config.task, f"{model_checkpoint.split('/')[-1]}-{config.experiment_name}")
 else:
     model_checkpoint = config.model_checkpoint
     model_out_path = config.model_checkpoint
@@ -49,6 +49,8 @@ id_tr_data_path = config.id_tr_data_path
 ood_tr_data_path = config.ood_tr_data_path
 id_te_data_path = config.id_te_data_path
 ood_te_data_path = config.ood_te_data_path
+id_val_data_path = config.id_val_data_path
+ood_val_data_path = config.ood_val_data_path
 
 if config.mode != 'cli':
     id_tr_df,  id_te_df = None, None
@@ -57,10 +59,8 @@ if config.mode != 'cli':
         id_tr_df = pd.read_csv(id_tr_data_path)
     if id_te_data_path is not None:
         id_te_df = pd.read_csv(id_te_data_path)
-    if ood_tr_data_path is not None:
-        ood_tr_df = pd.read_csv(ood_tr_data_path)
-    if ood_te_data_path is not None:
-        ood_te_df = pd.read_csv(ood_te_data_path)
+    if id_val_data_path is not None:
+        id_val_df = pd.read_csv(id_val_data_path)
     print('Loaded data...')
 else:
     print('Running inference on input: ', config.test_input)
@@ -122,7 +122,7 @@ else:
 
 if config.mode != 'cli':
     # Define function to load datasets and tokenize datasets
-    loader = DatasetLoader(id_tr_df, id_te_df, ood_tr_df, ood_te_df, config.sample_size)
+    loader = DatasetLoader(id_tr_df, id_te_df, id_val_df, sample_size=config.sample_size)
     if config.task == 'ate':
         if loader.train_df_id is not None:
             loader.train_df_id = loader.create_data_in_ate_format(loader.train_df_id, 'term', 'raw_text', 'aspectTerms', bos_instruction_id, eos_instruction)
@@ -158,8 +158,8 @@ if config.mode != 'cli':
             loader.train_df_id = loader.create_data_in_asqp_format(loader.train_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
         if loader.test_df_id is not None:
             loader.test_df_id = loader.create_data_in_asqp_format(loader.test_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
-        if loader.valid_df_id is not None:
-            loader.valid_df_id = loader.create_data_in_asqp_format(loader.valid_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
+        if loader.val_df_id is not None:
+            loader.val_df_id = loader.create_data_in_asqp_format(loader.val_df_id, 'input', 'target', bos_instruction_id, eos_instruction)
 
     # Tokenize dataset
     id_ds, id_tokenized_ds, ood_ds, ood_tokenized_ds = loader.set_data_for_training_semeval(t5_exp.tokenize_function_inputs) 
@@ -180,7 +180,7 @@ if config.mode != 'cli':
             id_tr_df['pred_labels'] = id_tr_pred_labels
             id_tr_df.to_csv(os.path.join(config.output_path, f'{config.experiment_name}_id_train.csv'), index=False)
             print('*****Train Metrics*****')
-            precision, recall, f1, accuracy = t5_exp.get_metrics(id_tr_df['labels'], id_tr_pred_labels)
+            precision, recall, f1, accuracy = t5_exp.get_metrics(id_tr_df['labels'], id_tr_pred_labels,is_quadruple_extraction=True)
             print('Precision: ', precision)
             print('Recall: ', recall)
             print('F1-Score: ', f1)

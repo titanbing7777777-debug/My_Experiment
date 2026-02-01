@@ -455,7 +455,7 @@ class InstructionsHandler:
         output: Dim Sum:so-so:neutral, Dim Sum:not spectacular:neutral
         Neutral example 2- 
         input: The location and ambience is Ok but the food is what makes up for it .
-        output: mlocationeal:Ok:neutral, ambience:Ok:neutral
+        output: mlocationeal:Ok:neutral, ambie nce:Ok:neutral
         Now complete the following example-
         input: """
         self.aoste['delim_instruct'] = ''
