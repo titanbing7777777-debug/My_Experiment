@@ -20,7 +20,7 @@ modes = ["train","valid","test"]
 language = ["en","zh"]
 
 
-BASE = Path(__file__).resolve().parent.parent  # /Fullmoon717/TaCoMoE
+BASE = Path(__file__).resolve().parent.parent # My_Experiment
 dataset_root = BASE / "dataset"
 
 def process_data(dataset_path, outdir_path,mode,language):

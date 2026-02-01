@@ -78,6 +78,17 @@ class T5Generator:
         return predicted_output
     
     def get_metrics(self, y_true, y_pred, is_triplet_extraction=False, is_quadruple_extraction=False):
+
+        def deduplicate_preserving_order(quads_list):
+            """去重但保持原始顺序"""
+            seen = set()
+            result = []
+            for quad in quads_list:
+                if quad not in seen:
+                    seen.add(quad)
+                    result.append(quad)
+            return result
+
         total_pred = 0
         total_gt = 0
         tp = 0
@@ -85,8 +96,8 @@ class T5Generator:
             for gt, pred in zip(y_true, y_pred):
                 gt_list = gt.split(', ')
                 pred_list = pred.split(', ')
-                total_pred+=len(pred_list)
-                total_gt+=len(gt_list)
+                total_pred += len(pred_list)
+                total_gt += len(gt_list)
                 for gt_val in gt_list:
                     gt_asp = gt_val.split(':')[0]
 
@@ -114,14 +125,21 @@ class T5Generator:
                             continue
 
                         if pr_asp in gt_asp and pr_op in gt_op and gt_sent == pr_sent:
-                            tp+=1
+                            tp += 1
         elif is_quadruple_extraction:
+            # Tuple-level counting (filters out the placeholder notarget entries).
             for gt, pred in zip(y_true, y_pred):
                 gt_list = [val for val in gt.split(', ') if val != 'notarget:none:none:none']
                 pred_list = [val for val in pred.split(', ') if val != 'notarget:none:none:none']
-                total_pred+=len(pred_list)
-                total_gt+=len(gt_list)
-                for gt_val in gt_list:
+
+                total_pred += len(pred_list)
+                total_gt += len(gt_list)
+
+
+                unique_gt_list = deduplicate_preserving_order(gt_list)
+                unique_pred_list = deduplicate_preserving_order(pred_list)
+
+                for gt_val in unique_gt_list:
                     gt_target = gt_val.split(':')[0]
 
                     try:
@@ -138,7 +156,7 @@ class T5Generator:
                     except:
                         continue
 
-                    for pred_val in pred_list:
+                    for pred_val in unique_pred_list:
                         pr_target = pred_val.split(':')[0]
 
                         try:
@@ -157,7 +175,7 @@ class T5Generator:
                             continue
 
                         if (pr_target == gt_target) and (pr_aspect == gt_aspect) and (pr_opinion == gt_opinion) and (pr_sentiment == gt_sentiment):
-                            tp+=1
+                            tp += 1
 
         else:
             for gt, pred in zip(y_true, y_pred):
