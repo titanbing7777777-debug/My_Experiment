@@ -51,7 +51,7 @@ def process_response(response_text):
         print(f"Response text: {response_text[:100]}...")
         return []
 
-def result_analysis(data_path):
+def result_analysis1(data_path):
     with open(data_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
     
@@ -98,9 +98,104 @@ def result_analysis(data_path):
     print(f"Recall: {recall:.4f} ({correct_count}/{gold_count})")
     print(f"F1 Score: {f1_score:.4f}")
 
+def _normalize_sentiment(value: str):
+    if value is None:
+        return None
+    v = re.sub(r'[^a-zA-Z]+', '', str(value)).lower()
+    if v in {"pos", "neg", "other"}:
+        return v
+    if v in {"positive", "posit", "positve"}:
+        return "pos"
+    if v in {"negative", "negat", "negativ"}:
+        return "neg"
+    if v in {"neutral", "none"}:
+        return "other"
+    return None
+
+def _parse_quadruples_text(text: str):
+    """
+    解析形如:
+      target:aspect:opinion:sentiment, ...
+    允许逗号/分号/竖线分隔
+    """
+    if text is None:
+        return []
+
+    t = text.strip()
+    if not t or t == "statement-non-opinion" or t == "notarget:none:none:none":
+        return []
+
+    if "output:" in t:
+        t = t.split("output:")[-1].strip()
+
+    parts = re.split(r'\s*(?:,|;|\|)\s*', t)
+    results = []
+
+    for p in parts:
+        p = p.strip()
+        if not p or p == "notarget:none:none:none":
+            continue
+
+        fields = p.split(":", 3)
+        if len(fields) < 4:
+            continue
+
+        target, aspect, opinion, sentiment = [x.strip() for x in fields]
+        sent = _normalize_sentiment(sentiment)
+        if not sent:
+            continue
+        if not target or target == "notarget":
+            continue
+        if not aspect or not opinion:
+            continue
+
+        results.append({
+            "target": target,
+            "aspect": aspect,
+            "opinion": opinion,
+            "sentiment": sent
+        })
+
+    return results
+
+def result_analysis2(data_path):
+    with open(data_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    gold_count = 0
+    pred_count = 0
+    correct_count = 0
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        json_line = json.loads(line)
+        gold = json_line.get("gold", "")
+        response = json_line.get("response", "")
+
+        gold_data = _parse_quadruples_text(gold)
+        pred_data = _parse_quadruples_text(response)
+
+        gold_set = set((i["target"], i["aspect"], i["opinion"], i["sentiment"]) for i in gold_data)
+        pred_set = set((i["target"], i["aspect"], i["opinion"], i["sentiment"]) for i in pred_data)
+
+        correct_set = gold_set.intersection(pred_set)
+        gold_count += len(gold_set)
+        pred_count += len(pred_set)
+        correct_count += len(correct_set)
+
+    precision = correct_count / pred_count if pred_count > 0 else 0.0
+    recall = correct_count / gold_count if gold_count > 0 else 0.0
+    f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+
+    print(f"Precision: {precision:.4f} ({correct_count}/{pred_count})")
+    print(f"Recall: {recall:.4f} ({correct_count}/{gold_count})")
+    print(f"F1 Score: {f1_score:.4f}")
 
 
 if __name__ == "__main__":
     BASE = Path(__file__).resolve().parent.parent
-    data_path = BASE / "result" / "en" / "result(10-shot)(deepseek-ai_DeepSeek-V3.2).json"
-    result_analysis(data_path)
+    data_path = BASE / "LLM-API" / "result" / "en" / "result(InstructionSet2)(deepseek-ai_DeepSeek-V3.2).json"
+    result_analysis2(data_path)
