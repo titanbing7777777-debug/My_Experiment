@@ -1,0 +1,3 @@
+输入：单个句子
+输出：句子中的情感四元组（target，aspect，opinion，sentiment），跨对话的情感寺院组已被筛除
+四元组个数（English）：train：3442 test：422 valid：423
