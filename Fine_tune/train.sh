@@ -5,9 +5,10 @@ CUDA_VISIBLE_DEVICES=0,1 \
 swift sft \
     --model ./$model \
     --tuner_backend peft \
-    --dataset 'Dataset(reply_chain)/DiaASQ/train.jsonl' \
+    --dataset 'Dataset2.0/en/train.jsonl' \
+    --val_dataset 'Dataset2.0/en/valid.jsonl' \
     --torch_dtype bfloat16 \
-    --num_train_epochs 5 \
+    --num_train_epochs 20 \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 1 \
     --learning_rate 1e-4 \
@@ -15,8 +16,8 @@ swift sft \
     --lora_alpha 32 \
     --target_modules all-linear \
     --gradient_accumulation_steps 16 \
-    --eval_steps 200 \
-    --save_steps 200 \
+    --eval_strategy epoch \
+    --save_strategy epoch \
     --save_total_limit 2 \
     --logging_steps 5 \
     --max_length 2048 \

@@ -1,0 +1,2 @@
+Input: A utterance
+Output: Quadruples in this utteracne(完整的)

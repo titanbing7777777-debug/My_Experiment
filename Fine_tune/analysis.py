@@ -206,8 +206,56 @@ def analysis2(result_path: Path) -> None:
     if malformed_records:
         print(f"Malformed JSON records skipped: {malformed_records}")
 
+def titan_analysis(result_path: Path) -> None:
+    if not result_path.is_file():
+        raise FileNotFoundError(f"Result file not found: {result_path}")
+
+    total_quads = 0
+    valid_lines = 0
+    pred_set = set()
+    gold_set = set()
+
+    with result_path.open('r', encoding='utf-8') as f:
+        for line_id, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+                response = data.get("response", "")
+                label = data.get("labels", "")
+                pred_labels = json.loads(response)
+                gold_labels = json.loads(label)
+                total_quads += len(gold_labels)
+                for pred_label in pred_labels:
+                    values = (
+                        str(pred_label.get("target", "")).strip(),
+                        str(pred_label.get("aspect", "")).strip(),
+                        str(pred_label.get("opinion", "")).strip(),
+                        str(pred_label.get("sentiment", "")).strip(),
+                    )
+                    pred_set.add(values)
+                for gold_label in gold_labels:
+                    values = (
+                        str(gold_label.get("target", "")).strip(),
+                        str(gold_label.get("aspect", "")).strip(),
+                        str(gold_label.get("opinion", "")).strip(),
+                        str(gold_label.get("sentiment", "")).strip(),
+                    )
+                    gold_set.add(values)
+            except json.JSONDecodeError:
+                print(f"Skipping invalid JSON line at line {line_id}")
+
+    correct_set = pred_set & gold_set
+    print(f"Total quadruples in gold data: {total_quads}")
+    print(f"Predicted quadruples: {len(pred_set)}")
+    print(f"Gold quadruples: {len(gold_set)}")
+    print(f"Correct quadruples: {len(correct_set)}")
+
+                
+
 
 if __name__ == "__main__":
     current_dir = Path(__file__).resolve().parent
-    result_path = current_dir / "results" / "Qwen2-7B-Instruct" / "v5-20260204-110218" / "checkpoint-180" / "test.jsonl"
-    analysis2(result_path)
+    result_path = current_dir / "results" / "Qwen2-7B-Instruct" / "v0-20260205-105228" / "checkpoint-72" / "test_result.jsonl"
+    titan_analysis(result_path)

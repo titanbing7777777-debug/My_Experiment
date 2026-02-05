@@ -33,6 +33,7 @@ def json2csv(json_filepath, csv_filepath):
     if data:
         print(data[0])
 
+
     # Normalize JSON data to flat table
     df = pd.json_normalize(data)
 
@@ -85,26 +86,52 @@ def process_data2(origin_path, target_path, mode):
     output_file = Path(target_path) / f"{mode}.jsonl"
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
+    total_quads = 0
+    quad_set = set()
+
     with open(output_file, "w", encoding="utf-8") as f_out:
         for line in lines:
             line = line.strip()
             if not line: continue
             json_line = json.loads(line)
-            chain_length = json_line["chain_length"]
             data = json_line["data"]
+            length = len(data)
             dict_item = {
                 "messages":[
                     {"role":"system","content":"You are a helpful assistant that extracts quadruples from a series of utterances in a dialogue."}
                 ]
             }
-            for i in range(chain_length):
+            for i in range(length):
                 dict_item["messages"].append({"role":"user","content":data[i]["utterance"]})
                 dict_item["messages"].append({"role":"assistant","content":json.dumps(data[i]["quadruples"], ensure_ascii=False)})
-            
+                total_quads += len(data[i]["quadruples"])
+                for quad in data[i]["quadruples"]:
+                    quad_set.add(str(quad))
             f_out.write(json.dumps(dict_item) + "\n")
+    print(f"Total quadruples count: {total_quads}")
+    print(f"Unique quadruples count: {len(quad_set)}")
 
-
-
+def validation_dataset(file_path):
+    with open(file_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    
+    total_quads = 0
+    quad_set = set()
+    for line in lines:
+        json_line = json.loads(line.strip())
+        messages = json_line.get("messages", [])
+        for message in messages:
+            if message["role"] == "assistant":
+                content = message.get("content", "")
+                try:
+                    quads = json.loads(content)
+                    total_quads += len(quads)
+                    for q in quads:
+                        quad_set.add(str(q))
+                except json.JSONDecodeError:
+                    print(f"Failed to parse content JSON: {content[:50]}...")
+    print(f"Validation - Total quadruples count: {total_quads}")
+    print(f"Validation - Unique quadruples count: {len(quad_set)}")
 
 if __name__ == "__main__":
 
@@ -113,8 +140,10 @@ if __name__ == "__main__":
 
     print("current directory:", current_dir) # /workspace/My_Experiment/src
 
-    origin_path = os.path.join(current_dir, "..", "data(reply_chain)(all)", "en", f"{mode}.jsonl")
+    origin_path = os.path.join(current_dir, "..", "data3.0", "en", f"{mode}.jsonl")
 
-    target_path = os.path.join(current_dir, "..", "Fine_tune", "Dataset(reply_chain)", "DiaASQ")
+    target_path = os.path.join(current_dir, "..", "Fine_tune", "Dataset3.0", "en")
 
     process_data2(origin_path, target_path, mode)
+
+    # validation_dataset(target_path + f"/{mode}.jsonl")

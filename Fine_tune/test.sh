@@ -1,6 +1,6 @@
 CUDA_VISIBLE_DEVICES=0,1
 model=Qwen2-7B-Instruct
-adapters=Qwen2-7B-Instruct/v5-20260204-110218/checkpoint-180
+adapters=Qwen2-7B-Instruct/v0-20260205-105228/checkpoint-72
 swift infer \
     --model $model \
     --adapters output/$adapters \
@@ -9,5 +9,5 @@ swift infer \
     --val_dataset 'Dataset(reply_chain)/DiaASQ/test.jsonl' \
     --temperature 0 \
     --max_new_tokens 2048 \
-    --result_path results/$adapters/test.jsonl \
+    --result_path results/$adapters/test_result.jsonl \
     --max_batch_size 2
