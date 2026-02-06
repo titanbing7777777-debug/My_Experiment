@@ -252,10 +252,50 @@ def titan_analysis(result_path: Path) -> None:
     print(f"Gold quadruples: {len(gold_set)}")
     print(f"Correct quadruples: {len(correct_set)}")
 
+def read_result(result_path: Path) -> None:
+    if not result_path.is_file():
+        raise FileNotFoundError(f"Result file not found: {result_path}")
+    
+    with result_path.open("r", encoding="utf-8") as source:
+        for line_number, raw_line in enumerate(source, start=1):
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+
+            try:
+                record = json.loads(stripped)
+                pred_labels = json.loads(record["response"])
+                gold_labels = json.loads(record["labels"])
+                response = []
+                label = []
+                for pred_label in pred_labels:
+                    values = (
+                        str(pred_label.get("target", "")).strip(),
+                        str(pred_label.get("aspect", "")).strip(),
+                        str(pred_label.get("opinion", "")).strip(),
+                        str(pred_label.get("sentiment", "")).strip(),
+                    )
+                    response.append(values)
+                for gold_label in gold_labels:
+                    values = (
+                        str(gold_label.get("target", "")).strip(),
+                        str(gold_label.get("aspect", "")).strip(),
+                        str(gold_label.get("opinion", "")).strip(),
+                        str(gold_label.get("sentiment", "")).strip(),
+                    )
+                    label.append(values)
                 
-
-
+                print(f"Line {line_number}:")
+                print(f"Predicted Quadruples:{response}")
+                print(f"Gold Quadruples:{label}")
+                cmd = input("Press Enter to continue (q to quit): ")
+                if cmd.lower() == 'q':
+                    break
+            except json.JSONDecodeError:
+                print(f"Malformed JSON at line {line_number}")
+    
+                
 if __name__ == "__main__":
     current_dir = Path(__file__).resolve().parent
-    result_path = current_dir / "results" / "Qwen2-7B-Instruct" / "v0-20260205-105228" / "checkpoint-72" / "test_result.jsonl"
-    titan_analysis(result_path)
+    result_path = current_dir 
+    read_result(result_path)

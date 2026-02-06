@@ -194,8 +194,136 @@ def result_analysis2(data_path):
     print(f"Recall: {recall:.4f} ({correct_count}/{gold_count})")
     print(f"F1 Score: {f1_score:.4f}")
 
+def read_result(result_path):
+    with open(result_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    for line_number, line in enumerate(lines):
+        try:
+            results = [json.loads(line.strip())]
+            print(type(results))
+            response = json.loads(results[0]["response"])["quadruples"]
+            label = json.loads(results[0]["gold"])["quadruples"]
+            print(f"Line {line_number}:")
+            print(f"Predicted Quadruples:{response}")
+            print(f"Gold Quadruples:{label}")
+            cmd = input("Press Enter to continue (q to quit): ")
+            if cmd.lower() == 'q':
+                break
+        except json.JSONDecodeError:
+            print(f"Malformed JSON at line {line_number}")
+
+def error_type_analysis(result_path):
+    with open(result_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    analysis = {
+        "TP": 0,
+        "FN_Missing": 0,
+        "FP_Hallucination": 0,
+        "Sentiment_Error": 0,
+        "Target_Error": 0,
+        "Aspect_Error": 0,
+        "Opinion_Error": 0
+    }
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+
+        raw_gold = data.get("gold", "")
+        raw_pred = data.get("response", "")
+
+        # 解析 Gold
+        if raw_gold == "statement-non-opinion":
+            gold_quads = []
+        else:
+            try:
+                gold_json = json.loads(raw_gold)
+                if isinstance(gold_json, dict):
+                    gold_quads = gold_json.get("quadruples", [])
+                else:
+                    gold_quads = []
+            except json.JSONDecodeError:
+                gold_quads = []
+        
+        # 解析 Prediction (使用 process_response)
+        pred_quads = process_response(raw_pred)
+
+        # 转换为 tuple 集合方便比较 (target, aspect, opinion, sentiment)
+        gold_set = set()
+        for q in gold_quads:
+            if isinstance(q, dict):
+                gold_set.add((q.get("target"), q.get("aspect"), q.get("opinion"), q.get("sentiment")))
+        
+        pred_set = set()
+        for q in pred_quads:
+            if isinstance(q, dict):
+                pred_set.add((q.get("target"), q.get("aspect"), q.get("opinion"), q.get("sentiment")))
+
+        # 统计
+        tp_set = gold_set.intersection(pred_set)
+        analysis["TP"] += len(tp_set)
+
+        missed = list(gold_set - pred_set)
+        spurious = list(pred_set - gold_set)
+
+        matched_spurious_indices = set()
+
+        for g in missed:
+            # g: (target, aspect, opinion, sentiment)
+            # 尝试在 spurious 中寻找"修改"过的版本
+            matched_type = None
+            matched_idx = -1
+            
+            for idx, p in enumerate(spurious):
+                if idx in matched_spurious_indices:
+                    continue
+                
+                # 检查不同类型的错误 (优先级: Sentiment > Opinion > Aspect > Target)
+                # 1. Sentiment Error: T, A, O 相同
+                if g[0] == p[0] and g[1] == p[1] and g[2] == p[2]:
+                    matched_type = "Sentiment_Error"
+                    matched_idx = idx
+                    break # 最强匹配，直接跳出
+                
+                # 2. Opinion Error: T, A, S 相同
+                elif g[0] == p[0] and g[1] == p[1] and g[3] == p[3]:
+                    if matched_type is None:
+                        matched_type = "Opinion_Error"
+                        matched_idx = idx
+                
+                # 3. Aspect Error: T, O, S 相同
+                elif g[0] == p[0] and g[2] == p[2] and g[3] == p[3]:
+                    if matched_type is None:
+                        matched_type = "Aspect_Error"
+                        matched_idx = idx
+
+                # 4. Target Error: A, O, S 相同
+                elif g[1] == p[1] and g[2] == p[2] and g[3] == p[3]:
+                    if matched_type is None:
+                        matched_type = "Target_Error"
+                        matched_idx = idx
+            
+            if matched_type:
+                analysis[matched_type] += 1
+                matched_spurious_indices.add(matched_idx)
+            else:
+                analysis["FN_Missing"] += 1
+        
+        # 剩下的 spurious 就是纯粹的幻觉
+        analysis["FP_Hallucination"] += (len(spurious) - len(matched_spurious_indices))
+
+    print("Error Analysis Result:")
+    print(json.dumps(analysis, indent=4, ensure_ascii=False))
 
 if __name__ == "__main__":
     BASE = Path(__file__).resolve().parent.parent
-    data_path = BASE / "LLM-API" / "result" / "en" / "result(InstructionSet2)(deepseek-ai_DeepSeek-V3.2).json"
-    result_analysis2(data_path)
+    data_path = BASE / "LLM-API" / "result" / "en" / "result(five-shot)(deepseek-ai_DeepSeek-V3.2).json"
+    # read_result(data_path)
+    error_type_analysis(data_path)
